@@ -11,6 +11,58 @@
     {
       "dimID": -1,
       "dimName": "Nether"
-    }
+    },
+    {
+	  "dimID": 424,
+	  "dimName": "Aurorian"
+	},
+	{
+	  "dimID": -421,
+	  "dimName": "Midnight"
+	},
+	{
+	  "dimID": 20,
+	  "dimName": "Betweenlands"
+	},
+	{
+	  "dimID": 33,
+	  "dimName": "Storm-3c Debris Field (Starter Station)"
+	},
+	{
+	  "dimID": 4,
+	  "dimName": "Aether"
+	},
+	{
+	  "dimID": 66,
+	  "dimName": "Erebus"
+	},
+	{
+	  "dimID": -23,
+	  "dimName": "Lair of Darkness"
+	},
+	{
+	  "dimID": -343800852,
+	  "dimName": "Spectre"
+	},
+	{
+	  "dimID": 2,
+	  "dimName": "Storage Cell"
+	},
+	{
+	  "dimID": -11,
+	  "dimName": "Storage Provider"
+	},
+	{
+	  "dimID": 144,
+	  "dimName": "Compact Machine"
+	},
+	{
+	  "dimID": 111,
+	  "dimName": "Lost Cities"
+	},
+	{
+	  "dimID": -2,
+	  "dimName": "Orbital Station"
+	}
   ]
 }
