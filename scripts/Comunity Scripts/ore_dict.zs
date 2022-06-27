@@ -242,3 +242,7 @@ for name, itemList in oreNameMap {
 <ore:blockEbony>.add(<midnight:ebonys_block>);
 
 <ore:paper>.add(<contenttweaker:root_paper>);
+
+<ore:anyCableWrapper>.add(<metaitem:plateRubber>);
+<ore:anyCableWrapper>.add(<metaitem:plateScabyst>);
+<ore:anyCableWrapper>.add(<theaurorian:spectralsilk>);
