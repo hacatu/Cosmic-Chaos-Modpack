@@ -57,7 +57,11 @@ val pebf = Builder.start(loc)
 			.where("B", <blockstate:gregtech:metal_casing:variant=bronze_bricks>)
 			.where("F", <blockstate:gregtech:boiler_firebox_casing:active=false,variant=bronze_firebox>)
 			.where("G", <blockstate:minecraft:stained_glass:color=red>)
-			.where("C", <blockstate:gregtech:meta_block_compressed_2009:variant=red_crystal_alloy>)
+			.where("C", CTPredicate.states(<blockstate:gregtech:meta_block_compressed_2009:variant=red_crystal_alloy>)
+				  | CTPredicate.states(<blockstate:gregtech:meta_block_compressed_2003:variant=aurorian_geode>)
+				  | CTPredicate.states(<blockstate:midnight:rouxe_rock>)
+				  | CTPredicate.states(<blockstate:thebetweenlands:mire_coral_block>)
+			)
             .where("I", CTPredicate.states(<blockstate:gregtech:metal_casing:variant=bronze_bricks>)
 				  | CTPredicate.abilities(<mte_ability:IMPORT_ITEMS>).setMinGlobalLimited(1).setPreviewCount(1)
 				  | CTPredicate.abilities(<mte_ability:EXPORT_ITEMS>).setMinGlobalLimited(1).setPreviewCount(1)
@@ -76,7 +80,6 @@ val pebf = Builder.start(loc)
 pebf.hasMaintenanceMechanics = false;
 pebf.hasMufflerMechanics = false;
 
-/*
 # [pebf] from [Blast Furnace][+4]
 craft.make(<metaitem:mbt:pebf>, ["pretty",
   "L ■ L",
@@ -88,9 +91,7 @@ craft.make(<metaitem:mbt:pebf>, ["pretty",
   "l": <futuremc:blast_furnace>,         # Blast Furnace
   "B": <ore:sheetBronze>,                # Bronze Sheet
 });
-*/
 
-<metaitem:mbt:pebf>.addTooltip(format.red("DISABLED IN ALPHA!"));
 <metaitem:mbt:pebf>.addTooltip(format.red("Runs dust/ore recipes in parallel!"));
 <metaitem:mbt:pebf>.addTooltip(format.red("4x + 1x per overclock tier"));
 
@@ -103,12 +104,12 @@ val steelFuelMap as int[IIngredient] = {
 for input, time in steelFuelMap {
 	pebf.recipeMap.recipeBuilder()
 		.inputs(input, <ore:ingotIron>)
-		.outputs(<ore:ingotSteel>.firstItem)
-	.duration(time).EUt(36).buildAndRegister();
+		.outputs(<ore:ingotSteel>.firstItem.withTag({display:{Lore:["Requires an upgraded gem core (aurorian geode, rouxe block, or mire coral)"]},requiresCoreTier:1}))
+	.duration(time).EUt(6).buildAndRegister();
 	
 	pebf.recipeMap.recipeBuilder()
 		.inputs(input, <ore:ingotIron>)
-		.outputs(<ore:ingotCrudeSteel>.firstItem)
+		.outputs(<ore:ingotCrudeSteel>.firstItem.withTag({display:{Lore:["Created by a basic gem core (fire gem)"]},requiresCoreTier:0}))
 	.duration(time).EUt(6).buildAndRegister();
 }
 
@@ -1195,8 +1196,17 @@ function voltageToTier(voltage as long) as long {
 	return (voltage < (8192 as long) ? (4 as long) : (5 as long)) as long;
 }
 
+val getCenter = function(pos as IBlockPos, facing as IFacing) as IBlockPos[] {
+	return [pos.getOffset(facing.opposite, 1).getOffset(IFacing.up(), 1)] as IBlockPos[];
+};
+
 pebf.formStructureFunction = function(controller as IControllerTile, context as IPatternMatchContext){
-	controller.extraData = 0 as IData;
+	val corePos as IBlockPos = controller.pos.getOffset(controller.frontFacing.opposite, 1).getOffset(IFacing.up(), 1);
+	val coreBlock as IBlockState = controller.world.getBlockState(corePos);
+	val coreTier as int = <blockstate:gregtech:meta_block_compressed_2009:variant=red_crystal_alloy>.matches(coreBlock) ? 0 : 1;
+	print("ZZZZZZ PEBF formStructure: coreTier? "~coreTier);
+	val extraExtracted as int = (!isNull(controller.extraData) && controller.extraData has "extraExtracted") ? controller.extraData.extraExtracted as int : 0;
+	controller.extraData = {extraExtracted: extraExtracted, coreTier: coreTier} as IData;
 } as IFormStructureFunction;
 
 pebf.setupRecipeFunction = function(logic as IRecipeLogic, recipe as IRecipe) as bool {
@@ -1215,18 +1225,29 @@ pebf.setupRecipeFunction = function(logic as IRecipeLogic, recipe as IRecipe) as
 		//print("PEBF::: Running at tier "~tier~", pulling "~extraAmount~" extra items");
 		val extraExtracted as int = extractIngredient(logic.inputInventory, recipeInputs[0]*(extraAmount*inputMult));
 		//print("PEBF::: Actually pulled "~extraExtracted);
-		logic.metaTileEntity.extraData = extraExtracted as IData;
+		val coreTier as int = logic.metaTileEntity.extraData.coreTier as int;
+		print("ZZZZZZ PEBF setupRecipe: coreTier "~coreTier);
+		logic.metaTileEntity.extraData = {extraExtracted: extraExtracted, coreTier: coreTier} as IData;
 	}
 	return false;
 } as ISetupRecipeFunction;
 
 pebf.completeRecipeFunction = function(logic as IRecipeLogic) as bool {
-	val extraExtracted as int = logic.metaTileEntity.extraData as int;
-	logic.metaTileEntity.extraData = 0 as IData;
+	val extraExtracted as int = logic.metaTileEntity.extraData.extraExtracted as int;
+	val coreTier = logic.metaTileEntity.extraData.coreTier as int;
+	print("ZZZZZZ PEBF completeRecipe: coreTier "~coreTier);
+	logic.metaTileEntity.extraData = {extraExtracted: 0, coreTier: coreTier} as IData;
 	//print("PEBF::: Generating bonus outputs for "~extraExtracted~" extra recipes");
+	var outputItem as IItemStack = logic.previousRecipe.getAllItemOutputs()[0];
 	if(extraExtracted != 0){
-		val outputItem as IItemStack = logic.previousRecipe.getAllItemOutputs()[0];
 		insertItemStack(logic.outputInventory, outputItem.withAmount(outputItem.amount*extraExtracted), false);
+	}else if(outputItem.hasTag && outputItem.tag has "requiresCoreTier"){
+		if(coreTier > 0){
+			outputItem = <ore:ingotSteel>.firstItem;
+		}else{
+			outputItem = <ore:ingotCrudeSteel>.firstItem;
+		}
+		logic.itemOutputs = [outputItem] as IItemStack[];
 	}
 	return true;
 } as ICompleteRecipeFunction;
